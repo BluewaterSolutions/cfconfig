@@ -92,6 +92,9 @@ component accessors=true extends='cfconfig-services.models.BaseConfig' {
 		var mappings = xmlSearch( thisConfig, '/cfLuceeConfiguration/mappings' );
 		if( mappings.len() ){ readMappings( mappings[ 1 ] ); }
 		
+		var RESTmappings = xmlSearch( thisConfig, '/cfLuceeConfiguration/rest' );
+		if( RESTmappings.len() ){ readRESTMappings( RESTmappings[ 1 ] ); }
+
 		var customTags = xmlSearch( thisConfig, '/cfLuceeConfiguration/custom-tag' );
 		if( customTags.len() ){ readCustomTags( customTags[ 1 ] ); }
 		
@@ -227,6 +230,14 @@ component accessors=true extends='cfconfig-services.models.BaseConfig' {
 				continue;
 			} 
 			addCFMapping( argumentCollection = params );
+		}
+	}
+
+	private function readRESTMappings( restmappings ) {
+		
+		for( var restmapping in restmappings.XMLChildren ) {
+			var params = structNew().append( restmapping.XMLAttributes );
+			addRESTMapping( argumentCollection = params );
 		}
 	}
 	
@@ -382,6 +393,7 @@ component accessors=true extends='cfconfig-services.models.BaseConfig' {
 		writeScope( thisConfig );
 		writeMail( thisConfig );
 		writeMappings( thisConfig );
+		writeRESTMappings( thisConfig );
 		writeCustomTags( thisConfig );
 		writeDebugging( thisConfig );
 		writeAuth( thisConfig );
@@ -658,6 +670,43 @@ component accessors=true extends='cfconfig-services.models.BaseConfig' {
 			// Insert into doc if this was new.
 			if( !mappingXMLSearch.len() ) {
 				mappings.append( mappingXMLNode );
+			}			
+		}
+	}
+
+	private function writeRESTMappings( thisConfig ) {
+		// Get all restmappings
+		// TODO: Add tag if it doesn't exist
+		var restmappings = xmlSearch( thisConfig, '/cfLuceeConfiguration/rest' )[ 1 ].XMLChildren;
+		var i = 0;
+		while( ++i<= restmappings.len() ) {
+			var thisrestMapping = restmappings[ i ];
+		}
+		
+		for( var virtual in getRESTmappings() ?: {} ) {
+			var restmappingStruct = getRESTmappings()[ virtual ];
+			// Search to see if this datasource already exists
+			var restmappingXMLSearch = xmlSearch( thisConfig, "/cfLuceeConfiguration/rest/mapping[translate(@virtual,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz')='#lcase( virtual )#']" );
+			// restmapping already exists
+			if( restmappingXMLSearch.len() ) {
+				restmappingXMLNode = restmappingXMLSearch[ 1 ];
+				// Wipe out old attributes for this restmapping
+				structClear( restmappingXMLNode.XMLAttributes );
+			// Create new data-source tag
+			} else {
+				var restmappingXMLNode = xmlElemnew(thisConfig,"mapping");				
+			}
+			
+			// Populate XML node
+			restmappingXMLNode.XMLAttributes[ 'virtual' ] = virtual;
+			if( !isNull( restmappingStruct.physical ) ) { restmappingXMLNode.XMLAttributes[ 'physical' ] = restmappingStruct.physical; }
+			if( !isNull( restmappingStruct.archive ) ) { restmappingXMLNode.XMLAttributes[ 'archive' ] = restmappingStruct.archive; }
+			if( !isNull( restmappingStruct.primary ) ) { restmappingXMLNode.XMLAttributes[ 'primary' ] = restmappingStruct.primary; }
+			if( !isNull( restmappingStruct.readOnly ) ) { restmappingXMLNode.XMLAttributes[ 'readOnly' ] = restmappingStruct.readOnly; }
+			
+			// Insert into doc if this was new.
+			if( !restmappingXMLSearch.len() ) {
+				restmappings.append( restmappingXMLNode );
 			}			
 		}
 	}

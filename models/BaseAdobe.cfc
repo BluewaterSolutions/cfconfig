@@ -46,6 +46,9 @@ component accessors=true extends='cfconfig-services.models.BaseConfig' {
 	property name='websocketConfigPath' type='string';
 	property name='websocketConfigTemplate' type='string';
 
+	property name='RESTConfigPath' type='string';
+	property name='RESTConfigTemplate' type='string';
+
 	// I'm basically always writing all properties in these two files, so not bothering with a template.
 	property name='seedPropertiesPath' type='string';
 	property name='passwordPropertiesPath' type='string';
@@ -70,6 +73,7 @@ component accessors=true extends='cfconfig-services.models.BaseConfig' {
 		setSchedulerConfigPath( '/lib/neo-cron.xml' );
 		setEventGatewayConfigPath( '/lib/neo-event.xml' );
 		setWebsocketConfigPath( '/lib/neo-websocket.xml' );
+		setRESTConfigPath( '/lib/neo-jaxrs.xml' );
 		setSeedPropertiesPath( '/lib/seed.properties' );
 		setPasswordPropertiesPath( '/lib/password.properties' );
 		setLicensePropertiesPath( '/lib/license.properties' );
@@ -110,6 +114,7 @@ component accessors=true extends='cfconfig-services.models.BaseConfig' {
 		readEventGateway();
 		readScheduler();
 		readWebsocket();
+		readREST();
 			
 		return this;
 	}
@@ -261,6 +266,22 @@ component accessors=true extends='cfconfig-services.models.BaseConfig' {
 		thisConfig = readWDDXConfigFile( getCFHomePath().listAppend( getWebsocketConfigPath(), '/' ) );
 		
 		if( !isNull( thisConfig[ 'startWebSocketService' ] ) ) { setWebsocketEnabled( thisConfig[ 'startWebSocketService' ] ); }		
+	}
+
+	private function readREST() {
+		thisConfig = readWDDXConfigFile( getCFHomePath().listAppend( getRESTConfigPath(), '/' ) );
+		var REST = thisConfig[ 1 ];
+		var params = {};
+		if( arrayLen( thisConfig ) ) { 
+			SystemOutput( arrayLen(thisConfig), true );
+			for (i=1;i LTE ArrayLen(thisConfig);i=i+1) {
+				for( var RESTName in thisConfig[ i ] ) {
+					params[ thisConfig[ 2 ][ RESTName ][ 1 ] ] = { 'physical' : RESTName, 'primary': thisConfig[ 2 ][ RESTName ][ 3 ] };
+					systemOutput ( serialize( params ), true);
+				}
+			}
+		 }	
+		 setRESTMappings( params );	
 	}
 		
 	private function readClientStore() {
@@ -468,6 +489,7 @@ component accessors=true extends='cfconfig-services.models.BaseConfig' {
 		writeScheduler();
 		writeEventGateway();
 		writeWebsocket();
+		writeREST();
 		
 		return this;
 	}
@@ -704,6 +726,23 @@ component accessors=true extends='cfconfig-services.models.BaseConfig' {
 		}
 
 		if( !isNull( getWebsocketEnabled() ) ) { thisConfig[ 'startWebSocketService' ] = !!getWebsocketEnabled(); }
+		
+		writeWDDXConfigFile( thisConfig, configFilePath );
+	}
+
+	private function writeREST() {
+		var configFilePath = getCFHomePath().listAppend( getRESTConfigPath(), '/' );
+		
+		// If the target config file exists, read it in
+		if( fileExists( configFilePath ) ) {
+			var thisConfig = readWDDXConfigFile( configFilePath );
+		// Otherwise, start from an empty base template
+		} else {
+			var thisConfig = readWDDXConfigFile( getRESTConfigTemplate() );
+		}
+
+		//if( !isNull( getRESTEnabled() ) ) { thisConfig[ 'startRESTService' ] = !!getRESTEnabled(); }
+		thisConfig[ 'startRESTService' ] = getREST();
 		
 		writeWDDXConfigFile( thisConfig, configFilePath );
 	}
